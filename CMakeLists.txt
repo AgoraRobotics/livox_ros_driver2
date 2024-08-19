@@ -1,5 +1,5 @@
 # judge which cmake codes to use 
-if(ROS_EDITION STREQUAL "ROS1")
+if($ENV{ROS_VERSION} STREQUAL "1")
 
   # Copyright(c) 2019 livoxtech limited.
 
@@ -91,7 +91,15 @@ if(ROS_EDITION STREQUAL "ROS1")
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   ## make sure the livox_lidar_sdk_static library is installed
-  find_library(LIVOX_LIDAR_SDK_LIBRARY  liblivox_lidar_sdk_static.a    /usr/local/lib)
+  # # Use prebuild livox sdk
+  # if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+  #   set(LIVOX_LIDAR_SDK_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/livox_sdk/lib/x86_64/liblivox_lidar_sdk_static.a)
+  # else()
+  #   message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_PROCESSOR}")
+  # endif()
+
+  # ## livox sdk include dir
+  # set(LIVOX_LIDAR_SDK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/livox_sdk/include)
 
   ## PCL library
   link_directories(${PCL_LIBRARY_DIRS})
@@ -147,6 +155,7 @@ if(ROS_EDITION STREQUAL "ROS1")
   target_include_directories(${PROJECT_NAME}_node
     PUBLIC
     ${catkin_INCLUDE_DIRS}
+    ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
     ${PCL_INCLUDE_DIRS}
     ${APR_INCLUDE_DIRS}
     3rdparty
@@ -184,7 +193,7 @@ if(ROS_EDITION STREQUAL "ROS1")
   #---------------------------------------------------------------------------------------
 
 
-else(ROS_EDITION STREQUAL "ROS2")
+else($ENV{ROS_VERSION} STREQUAL "2")
 
   # Copyright(c) 2020 livoxtech limited.
 
@@ -244,7 +253,7 @@ else(ROS_EDITION STREQUAL "ROS2")
     DEPENDENCIES builtin_interfaces std_msgs
     LIBRARY_NAME ${PROJECT_NAME}
   )
-
+  
   ## make sure the livox_lidar_sdk_shared library is installed
   find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_shared.so /usr/local/lib REQUIRED)
 
@@ -282,14 +291,14 @@ else(ROS_EDITION STREQUAL "ROS2")
   target_include_directories(${PROJECT_NAME} PRIVATE ${livox_sdk_INCLUDE_DIRS})
 
   # get include directories of custom msg headers
-  if(HUMBLE_ROS STREQUAL "humble")
-    rosidl_get_typesupport_target(cpp_typesupport_target
-    ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
-    target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
-  else()
+  if($ENV{ROS_DISTRO} STREQUAL "foxy")
     set(LIVOX_INTERFACE_TARGET "${LIVOX_INTERFACES}__rosidl_typesupport_cpp")
     add_dependencies(${PROJECT_NAME} ${LIVOX_INTERFACES})
     get_target_property(LIVOX_INTERFACES_INCLUDE_DIRECTORIES ${LIVOX_INTERFACE_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
+  else()
+    rosidl_get_typesupport_target(cpp_typesupport_target
+    ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
+    target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
   endif()
 
   # include file direcotry
